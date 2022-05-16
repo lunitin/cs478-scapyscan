@@ -13,7 +13,7 @@ import ipaddress
 # TCP Port Scan Helper
 """
 def tcp_port_is_open(dst_ip, dst_port):
-    print("Check TCP port", dst_ip, dst_port)
+    #print("Check TCP port", dst_ip, dst_port)
     src_port = RandShort()
     tcp_connect_scan_resp = sr1(IP(dst=dst_ip)/TCP(sport=src_port, dport=dst_port, flags="S"), timeout=2, verbose=0)
 
@@ -25,9 +25,11 @@ def tcp_port_is_open(dst_ip, dst_port):
             return True
         elif (tcp_connect_scan_resp.getlayer(TCP).flags == 0x14):
             return False
+    return False
+
 
 """
-# UDP Port scan Helper
+# UDP Port Scan Helper
 """
 def udp_port_is_open(dst_ip, dst_port):
 
@@ -45,7 +47,7 @@ def udp_port_is_open(dst_ip, dst_port):
         else:
             return False
 
-
+    return False
 
 
 """
@@ -54,24 +56,19 @@ def udp_port_is_open(dst_ip, dst_port):
 def tcp_connect_scan(ip):
     print("Scanning TCP Ports: 20-100, 130-150, and 400-500")
 
-    for i in range(20,30):
-    #for port in list(range(20,101)) + list(range(130,151)) + list(range(400,501)):
-    #    if (tcp_port_is_open(ip, port)):
-    #        o.append(port)
-
-        print(i)
-
-    print("Open TCP Ports: ")
-    print(o)
-
+    print("Host:", ip)
+    for port in list(range(20,101)) + list(range(130,151)) + list(range(400,501)):
+       if (tcp_port_is_open(ip, port)):
+           print("Open:", port)
 
 
 """
-a UDP scan of the top 100 ports
+# UDP scan of the top 100 ports
 """
 def udp_top_100_scan(ip):
     print("Scanning top 100 UDP Ports...")
-    open = closed = []
+
+    print("Host:", ip)
     top100UDP = [7, 9, 17, 19, 49, 53, 67, 68, 69, 80, 88, 111, 120, 123, 135, 136, 137, 138, 139, 158, 161, 162, 177, 427,
                  443, 445, 497, 500, 514, 515, 518, 520, 593, 623, 626, 631, 996, 997, 998, 999, 1022, 1023, 1025, 1026,
                  1027, 1028, 1029, 1030, 1433, 1434, 1645, 1646, 1701, 1718, 1719, 1812, 1813, 1900, 2000, 2048, 2049, 2222,
@@ -81,17 +78,15 @@ def udp_top_100_scan(ip):
 
     for port in top100UDP:
         if (udp_port_is_open(ip, port)):
-            open.append(port)
-        else:
-            closed.append(port)
+            print("Open:", port)
 
-    print("Open UDP Ports: ")
-    print(open)
+
 
 """
 # Simple OS detection scan
 """
 def os_detect(ip):
+    print("Performing OS detection on",ip)
 
     icmp_check = sr1(IP(dst=ip)/ICMP(), timeout=2, verbose=0)
     if icmp_check:
@@ -107,55 +102,46 @@ def os_detect(ip):
     print("OS of", ip, "likely", os)
 
 """
-# an IP protocol scan
-"""
-def protocol_scan(ip):
-    return False
-
-
-"""
 # Try scanning your VM's subnet, on TCP ports 20-25.
 #
 # combine CIDR notation and an exclude list specified on the command line
 """
 def network_scan(cidr, exclude = []):
+    print("Scanning TCP Ports: 20-25 on", cidr, "Excluding", exclude)
     # Find hosts on the network
-    open = closed = []
-
     for host in ipaddress.ip_network(cidr).hosts():
         ip = str(host)
         if ip in exclude:
             #print("excluded", ip)
             continue
-        print(ip)
-        #ans,unans=sr(IP(dst=ip)/TCP(flags='S', dport=(20,25)), timeout=2)
-        #print(ans.nsummary(), unans.nsummary())
-        if tcp_port_is_open(ip, 80):
-            open.append(str(ip + " : " + "53"))
-        else:
-            closed.append(str(ip +" : " + "53") )
-
-    print("Hosts with open ports:") 
-    print(open)
-    # For each active host, check ports 20 through 25
-    # open = closed = []
-    #
-    # for port in range(20,26):
-    #     if (tcp_port_is_open(ip, port)):
-    #         open.append(port)
-    #     else:
-    #         closed.append(port)
+        print("Host:", ip)
+        for port in range(20,26):
+            if (tcp_port_is_open(ip, port)):
+                print("Open:", port)
 
 
 
 
-
-ip = '10.0.0.1'
-range = '10.0.0.0/29'
 # MAIN
+
+# IP Of host to scan
+ip = '10.0.0.1'
+
+# CIDR range to scan
+net = '10.0.0.0/30'
+
+# IP addresses to exclude
+exclude = ['10.0.0.4']
+
+### RUN SCANS
 tcp_connect_scan(ip)
+print("\n")
 
-#udp_top_100_scan(ip)
-#os_detect(ip)
+udp_top_100_scan(ip)
+print("\n")
 
-#network_scan(range, ['10.0.0.4'])
+os_detect(ip)
+print("\n")
+
+network_scan(net, exclude)
+print("\n")
